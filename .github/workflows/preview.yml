@@ -1,0 +1,46 @@
+# Plan morning-digest § 3/4. Saves /digest/2026-10-28 as one HTML file and puts it on GitHub
+# Pages. The page is built here, never committed (ADR 0003). LANE_MARKER comes from the repo
+# secret of the same name; with the secret deleted the banner reads "no marker set" (§ 4).
+name: preview
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install -g pnpm@12.16.1 && pnpm install --frozen-lockfile
+      - name: Write .env
+        env:
+          LANE_MARKER: ${{ secrets.LANE_MARKER }}
+        run: |
+          grep -v '^LANE_MARKER=' .env.example > .env
+          echo "LANE_MARKER=${LANE_MARKER}" >> .env
+      - name: Save /digest/2026-10-28
+        run: |
+          pnpm start &
+          for i in $(seq 30); do curl -sf localhost:8787/health >/dev/null && break; sleep 1; done
+          mkdir -p var/preview
+          curl -sf localhost:8787/digest/2026-10-28 -o var/preview/index.html
+          grep -c '<tr>' var/preview/index.html
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: var/preview
+      - id: deploy
+        uses: actions/deploy-pages@v4
