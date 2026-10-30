@@ -14,6 +14,7 @@ describe('readNight', () => {
     expect(night!.night).toBe('2026-10-28');
     expect(night!.rows).toHaveLength(5);
     expect(night!.badLines).toBe(1);
+    expect(night!.counts).toEqual({ ok: 10, retry: 4, fail: 1 });
     const jobs = night!.rows.map((r) => r.job);
     expect(jobs).toEqual([...jobs].sort());
 
@@ -36,7 +37,7 @@ describe('readNight', () => {
 
   it('returns a night with no rows for an empty file', () => {
     writeFileSync(join(tmp, '2026-01-02.jsonl'), '');
-    expect(readNight(tmp, '2026-01-02')).toEqual({ night: '2026-01-02', rows: [], badLines: 0 });
+    expect(readNight(tmp, '2026-01-02')).toEqual({ night: '2026-01-02', rows: [], badLines: 0, counts: { ok: 0, retry: 0, fail: 0 } });
   });
 
   it('counts lines with the wrong shape as bad, skips blank lines', () => {
